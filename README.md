@@ -3,7 +3,7 @@
 **Thông tin học viên:**
 - **Họ và tên:** Đặng Trần Đạt
 - **Mã học viên:** 2A202600662
-- **Khóa học/Bài tập:** Day9_Multi-Agent_MCP-A2A
+- **Bài tập:** Day9_Multi-Agent_MCP-A2A
 
 ## Tổng Quan Dự Án
 Đây là kho lưu trữ bài nộp cho Codelab Day 9, thuộc chuyên đề xây dựng hệ thống Trí tuệ nhân tạo Đa tác vụ (Multi-Agent Legal Advisory) thông qua giao thức A2A (Agent-to-Agent) của Google kết hợp cùng LangGraph & LangChain.
@@ -63,14 +63,3 @@ npm run dev
 Sau đó truy cập link (ví dụ: http://localhost:5173 hoặc 3000) trên trình duyệt để trải nghiệm tính năng trò chuyện có bộ nhớ (Memory) và hiển thị Sơ đồ Graph thời gian thực.
 
 ---
-
-## Chi Tiết Các File Chính Đã Chỉnh Sửa
-- `answers.md`: Chứa toàn bộ **câu trả lời bài tập lý thuyết** và **báo cáo chi tiết cách giải bài tập nâng cao (Challenges)**.
-- `api.py` & `stages/stage_4_milti_agent/main.py`: Chứa logic Triển khai Challenge 1 (Memory + Threading).
-- `common/auth.py` & `*/__main__.py`: Chứa mã nguồn Middleware bảo mật Triển khai Challenge 2 (Auth).
-- `common/a2a_client.py`: Nơi cài cắm Challenge 3 (Exponential Backoff Retry Logic).
-- `index.html` / `style.css` / `main.js`: Mã nguồn của giao diện UI siêu cấp.
-- `test_client.py` & `test_client_optimized.py`: File kiểm thử toàn trình, đã tích hợp sẵn API Key (Header Authorization) và chia luồng Full-Flow / Bypass.
-- `start_all.sh` & `start_all.ps1`: Bổ sung tiến trình khởi chạy `privacy_agent` cho cả MacOS/Linux và Windows.
-- `exercises/`: Hoàn thiện toàn bộ bài tập thực hành theo yêu cầu của Codelab.
-- `README_old.md`: File README bản gốc của repository.
