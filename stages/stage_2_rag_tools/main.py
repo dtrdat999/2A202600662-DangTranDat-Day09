@@ -81,6 +81,16 @@ LEGAL_KNOWLEDGE = [
             "public interest (Winter v. Natural Resources Defense Council, 2008)."
         ),
     },
+    {
+        "id": "labor_law",
+        "keywords": ["lao", "động", "sa", "thải", "hợp", "đồng", "báo", "trước"],
+        "text": (
+            "Theo Bộ luật Lao động Việt Nam 2019, người sử dụng lao động có thể "
+            "đơn phương chấm dứt hợp đồng trong các trường hợp: (1) người lao động "
+            "thường xuyên không hoàn thành công việc; (2) bị ốm đau, tai nạn đã điều trị "
+            "12 tháng chưa khỏi; (3) thiên tai, hỏa hoạn; (4) người lao động đủ tuổi nghỉ hưu."
+        ),
+    },
 ]
 
 
@@ -135,23 +145,37 @@ def calculate_damages(breach_type: str, contract_value: float) -> str:
     )
 
 
-TOOLS = [search_legal_database, calculate_damages]
+@tool
+def check_statute_of_limitations(case_type: str) -> str:
+    """Kiểm tra thời hiệu khởi kiện theo loại vụ án.
+    
+    Args:
+        case_type: Loại vụ án (contract, tort, property)
+    """
+    limits = {
+        "contract": "4 năm (UCC § 2-725)",
+        "tort": "2-3 năm tùy bang",
+        "property": "5 năm",
+    }
+    return limits.get(case_type.lower(), "Không xác định")
 
-QUESTION = "What are the legal consequences if a company breaches a non-disclosure agreement?"
 
+TOOLS = [search_legal_database, calculate_damages, check_statute_of_limitations]
+
+QUESTION = "Hậu quả pháp lý là gì nếu công ty vi phạm thỏa thuận bảo mật thông tin (NDA)?"
 
 async def main():
     print("=" * 70)
-    print("STAGE 2: LLM + RAG / Tools")
+    print("GIAI ĐOẠN 2: LLM kết hợp RAG và Tools")
     print("=" * 70)
     print()
-    print("[How it works]")
-    print("  1. LLM receives tools (search_legal_database, calculate_damages)")
-    print("  2. LLM decides which tools to call and with what arguments")
-    print("  3. We execute the tools and feed results back to the LLM")
-    print("  4. LLM generates a final answer grounded in retrieved data")
+    print("[Cách hoạt động]")
+    print("  1. LLM được cung cấp các công cụ (search_legal_database, calculate_damages)")
+    print("  2. LLM tự quyết định gọi công cụ nào và truyền tham số gì")
+    print("  3. Code Python sẽ chạy công cụ đó và trả kết quả về cho LLM")
+    print("  4. LLM dựa vào dữ liệu đó để viết câu trả lời cuối cùng")
     print()
-    print(f"Question: {QUESTION}")
+    print(f"Câu hỏi: {QUESTION}")
     print("-" * 70)
 
     llm = get_llm()
@@ -161,56 +185,56 @@ async def main():
     messages = [
         SystemMessage(
             content=(
-                "You are a legal expert with access to a legal knowledge base and a damage "
-                "calculator. Use the tools provided to ground your analysis in specific statutes "
-                "and case law. Always search the database before answering. "
-                "Keep your final response under 400 words."
+                "Bạn là một chuyên gia pháp lý có quyền truy cập vào cơ sở dữ liệu pháp lý (tiếng Anh) "
+                "và công cụ tính toán bồi thường. \n"
+                "QUY TẮC QUAN TRỌNG: Tool tìm luật chỉ nhận từ khóa tiếng Anh, hãy tự dịch từ khóa sang tiếng Anh để tra cứu. "
+                "BẠN PHẢI TRẢ LỜI NGƯỜI DÙNG HOÀN TOÀN BẰNG TIẾNG VIỆT, giữ độ dài dưới 400 chữ."
             )
         ),
         HumanMessage(content=QUESTION),
     ]
 
     # --- Step 1: LLM decides which tools to call ---
-    print("\n>>> Step 1: Asking LLM (with tools bound)...\n")
+    print("\n>>> Bước 1: Hỏi LLM (đã gắn kèm tools)...\n")
     response = await llm_with_tools.ainvoke(messages)
     messages.append(response)
 
     if not response.tool_calls:
-        print("LLM chose not to use any tools. Direct answer:")
+        print("LLM quyết định không dùng tool. Câu trả lời trực tiếp:")
         print(response.content)
         return
 
     # --- Step 2: Execute tool calls ---
-    print(f">>> Step 2: LLM requested {len(response.tool_calls)} tool call(s):\n")
+    print(f">>> Bước 2: LLM yêu cầu gọi {len(response.tool_calls)} tool(s):\n")
     for tc in response.tool_calls:
         print(f"  Tool: {tc['name']}")
-        print(f"  Args: {tc['args']}")
+        print(f"  Tham số: {tc['args']}")
 
         tool_fn = tool_map[tc["name"]]
         result = await tool_fn.ainvoke(tc["args"])
-        print(f"  Result: {result[:200]}{'...' if len(result) > 200 else ''}")
+        print(f"  Kết quả: {result[:200]}{'...' if len(result) > 200 else ''}")
         print()
 
         messages.append(ToolMessage(content=result, tool_call_id=tc["id"]))
 
     # --- Step 3: LLM generates final grounded answer ---
-    print(">>> Step 3: LLM generating final answer with tool results...\n")
+    print(">>> Bước 3: LLM đang tạo câu trả lời cuối cùng dựa trên kết quả tool...\n")
     final_response = await llm_with_tools.ainvoke(messages)
     print(final_response.content)
 
     print()
     print("-" * 70)
-    print("[Improvements over Stage 1]")
-    print("  + Grounded: answers cite specific statutes (DTSA, UCC, etc.)")
-    print("  + Tool use: can search databases and calculate damages")
-    print("  + More accurate: retrieval reduces hallucination risk")
+    print("[Tiến bộ so với Giai đoạn 1]")
+    print("  + Có căn cứ: Các câu trả lời trích dẫn các luật cụ thể (DTSA, UCC, v.v.)")
+    print("  + Có Tools: Có thể tìm kiếm cơ sở dữ liệu và tính toán thiệt hại")
+    print("  + Chính xác hơn: RAG giúp giảm nguy cơ ảo giác (hallucination)")
     print()
-    print("[Limitations of Stage 2]")
-    print("  - Manual orchestration: we wrote the tool-call loop ourselves")
-    print("  - Single pass: only one round of tool calls")
-    print("  - No reasoning loop: LLM can't decide to search again if needed")
+    print("[Hạn chế của Giai đoạn 2]")
+    print("  - Điều phối thủ công: Chúng ta phải tự viết vòng lặp gọi tool bằng code Python")
+    print("  - Chỉ 1 lượt: LLM chỉ được phép gọi tool đúng 1 lần")
+    print("  - Không có vòng lặp tư duy: LLM không thể quyết định tìm kiếm lại nếu lần đầu tìm không ra kết quả")
     print()
-    print("Next: Stage 3 wraps this in an autonomous ReAct agent loop.")
+    print("Tiếp theo: Giai đoạn 3 sẽ gói hệ thống này vào một Agent tự động (ReAct Loop).")
     print("=" * 70)
 
 

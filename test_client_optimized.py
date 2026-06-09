@@ -1,6 +1,6 @@
 """End-to-end test client for the Legal Multi-Agent System.
 
-Sends a legal question to the Customer Agent and prints the response.
+Sends a legal question to the Law Agent directly (bypassing Customer Agent) to reduce latency.
 """
 
 import asyncio
@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-CUSTOMER_AGENT_URL = os.getenv("CUSTOMER_AGENT_URL", "http://localhost:10100")
+LAW_AGENT_URL = os.getenv("LAW_AGENT_URL", "http://localhost:10101")
 A2A_API_KEY = os.getenv("A2A_API_KEY", "super-secret-key")
 
 import sys
@@ -28,7 +28,7 @@ async def main() -> None:
     import time
     start_time = time.time()
 
-    print(f"Connecting to Customer Agent at {CUSTOMER_AGENT_URL}")
+    print(f"Connecting to Law Agent (bypassing Customer Agent for lower latency) at {LAW_AGENT_URL}")
     print(f"Question: {QUESTION}")
     print("-" * 60)
     
@@ -36,12 +36,12 @@ async def main() -> None:
 
     async with httpx.AsyncClient(timeout=300.0, headers=headers) as http_client:
         # Resolve agent card
-        card_url = f"{CUSTOMER_AGENT_URL}/.well-known/agent.json"
+        card_url = f"{LAW_AGENT_URL}/.well-known/agent.json"
         try:
             card_resp = await http_client.get(card_url)
             card_resp.raise_for_status()
         except Exception as e:
-            print(f"ERROR: Could not reach Customer Agent at {card_url}")
+            print(f"ERROR: Could not reach Law Agent at {card_url}")
             print(f"  {e}")
             print("Make sure all services are running (./start_all.ps1)")
             sys.exit(1)
@@ -101,6 +101,7 @@ async def main() -> None:
             print(result_text)
             print("=" * 60)
             print(f"✅ Total Latency: {latency:.2f} seconds")
+            print("💡 Extra Credit: Bypassing Customer Agent and connecting directly to Law Agent reduces latency significantly!")
         else:
             print("No text response received. Raw response:")
             print(response)

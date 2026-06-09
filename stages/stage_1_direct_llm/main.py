@@ -19,18 +19,18 @@ from langchain_core.messages import HumanMessage, SystemMessage
 
 from common.llm import get_llm
 
-QUESTION = "What are the legal consequences if a company breaches a non-disclosure agreement?"
+QUESTION = "Tôi làm việc cho công ty đã 3 năm nhưng không ký hợp đồng lao động, bây giờ công ty sa thải tôi mà không báo trước có vi phạm luật không?"
 
 
 async def main():
     print("=" * 70)
-    print("STAGE 1: Direct LLM Calling")
+    print("GIAI ĐOẠN 1: Gọi trực tiếp LLM (Direct LLM Calling)")
     print("=" * 70)
     print()
-    print("[How it works]")
-    print("  1. We send a system prompt + user question directly to the LLM")
-    print("  2. The LLM responds from its training data only")
-    print("  3. No tools, no retrieval, no external knowledge")
+    print("[Cách hoạt động]")
+    print("  1. Chúng ta gửi câu hỏi + prompt trực tiếp cho LLM")
+    print("  2. LLM sẽ trả lời dựa trên những gì nó học được từ trước")
+    print("  3. Không có tools, không có kết nối cơ sở dữ liệu")
     print()
     print(f"Question: {QUESTION}")
     print("-" * 70)
@@ -40,26 +40,26 @@ async def main():
     messages = [
         SystemMessage(
             content=(
-                "You are a legal expert. Provide a clear, concise analysis "
-                "of the legal question asked. Keep your response under 300 words."
+                "Bạn là một chuyên gia pháp lý. Hãy phân tích câu hỏi "
+                "một cách rõ ràng, ngắn gọn và giữ độ dài dưới 300 chữ."
             )
         ),
         HumanMessage(content=QUESTION),
     ]
 
-    print("\n>>> Calling LLM directly (no tools, no RAG)...\n")
+    print("\n>>> Đang gọi LLM trực tiếp (không dùng tools, không có RAG)...\n")
     response = await llm.ainvoke(messages)
     print(response.content)
 
     print()
     print("-" * 70)
-    print("[Limitations of Stage 1]")
-    print("  - Stateless: no conversation memory between calls")
-    print("  - No tools: cannot search databases or calculate damages")
-    print("  - Knowledge cutoff: only knows what was in training data")
-    print("  - No grounding: cannot cite specific statutes or current case law")
+    print("[Hạn chế của Giai đoạn 1]")
+    print("  - Không có trí nhớ: LLM không nhớ cuộc trò chuyện trước đó")
+    print("  - Không có công cụ (Tools): Không thể tìm kiếm dữ liệu thực tế")
+    print("  - Lỗi thời: Chỉ biết những gì có trong dữ liệu huấn luyện ban đầu")
+    print("  - Không có căn cứ: Không thể trích dẫn luật hoặc án lệ hiện hành")
     print()
-    print("Next: Stage 2 adds RAG and tools to ground responses in real data.")
+    print("Tiếp theo: Giai đoạn 2 sẽ thêm RAG và Tools để cung cấp dữ liệu thực tế cho LLM.")
     print("=" * 70)
 
 

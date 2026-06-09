@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LexAI - Advanced Multi-Agent System</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Marked.js & DOMPurify for Markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.3/purify.min.js"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <!-- Abstract Background -->
+    <div class="ambient-bg">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+      <div class="noise-overlay"></div>
+    </div>
+
+    <div class="app-layout">
+      <!-- Sidebar / Graph Visualizer -->
+      <aside class="sidebar glass-panel">
+        <div class="brand">
+          <div class="brand-icon">
+            <i class="fa-solid fa-gavel"></i>
+          </div>
+          <div class="brand-text">
+            <h1>LexAI</h1>
+            <span class="version">v2.0 Enterprise</span>
+          </div>
+        </div>
+
+        <div class="system-status">
+          <div class="status-dot"></div>
+          <span>A2A Protocol Active</span>
+        </div>
+
+        <div class="topology-container" id="agent-dashboard">
+          <h3 class="section-title">
+            <i class="fa-solid fa-network-wired"></i>
+            Execution Trace
+          </h3>
+          
+          <div class="graph-visualizer">
+            <!-- Level 1 -->
+            <div class="graph-row">
+              <div class="agent-node" id="agent-law">
+                <div class="node-icon"><i class="fa-solid fa-scale-balanced"></i></div>
+                <div class="node-info">
+                  <span class="node-name">Law Agent</span>
+                  <span class="node-role">Router & Analysis</span>
+                </div>
+                <div class="status-ring"></div>
+              </div>
+            </div>
+
+            <!-- Path 1 -->
+            <div class="path-vertical"><div class="path-line" id="path-1"></div></div>
+
+            <!-- Level 2 (Parallel) -->
+            <div class="graph-row row-parallel">
+              <div class="agent-node small" id="agent-tax">
+                <div class="node-icon"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+                <div class="node-info">
+                  <span class="node-name">Tax</span>
+                </div>
+                <div class="status-ring"></div>
+              </div>
+
+              <div class="agent-node small" id="agent-compliance">
+                <div class="node-icon"><i class="fa-solid fa-building-shield"></i></div>
+                <div class="node-info">
+                  <span class="node-name">Compliance</span>
+                </div>
+                <div class="status-ring"></div>
+              </div>
+
+              <div class="agent-node small" id="agent-privacy">
+                <div class="node-icon"><i class="fa-solid fa-user-shield"></i></div>
+                <div class="node-info">
+                  <span class="node-name">Privacy</span>
+                </div>
+                <div class="status-ring"></div>
+              </div>
+            </div>
+
+            <!-- Path 2 -->
+            <div class="path-vertical"><div class="path-line" id="path-2"></div></div>
+
+            <!-- Level 3 -->
+            <div class="graph-row">
+              <div class="agent-node" id="agent-aggregate">
+                <div class="node-icon"><i class="fa-solid fa-layer-group"></i></div>
+                <div class="node-info">
+                  <span class="node-name">Aggregator</span>
+                  <span class="node-role">Synthesis</span>
+                </div>
+                <div class="status-ring"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Chat Area -->
+      <main class="chat-wrapper glass-panel">
+        <header class="chat-header">
+          <h2>LangGraph Multi-Agent Collaboration</h2>
+          <p>Ask complex legal questions requiring multidisciplinary analysis.</p>
+        </header>
+
+        <div class="chat-history" id="chat-container">
+          <div class="message system-msg">
+            <div class="avatar"><i class="fa-solid fa-sparkles"></i></div>
+            <div class="msg-content">
+              Xin chào! Hệ thống AI Pháp lý phân tán của chúng tôi đã sẵn sàng. Hệ thống bao gồm mạng lưới các Agent chuyên trách: Thuế, Tuân thủ và Dữ liệu. Hãy đặt một câu hỏi phức tạp!
+            </div>
+          </div>
+        </div>
+
+        <div class="chat-input-container">
+          <form id="chat-form">
+            <div class="input-wrapper">
+              <textarea id="question-input" rows="1" placeholder="Ví dụ: Công ty tôi bị rò rỉ dữ liệu thẻ tín dụng và chưa khai báo thuế, hậu quả là gì?" required></textarea>
+              <button type="submit" id="send-btn" title="Send Request">
+                <i class="fa-solid fa-paper-plane"></i>
+              </button>
+            </div>
+            <div class="input-footer">
+              <span><i class="fa-solid fa-bolt"></i> Powered by LangGraph A2A</span>
+              <span>Press Shift + Enter for new line</span>
+            </div>
+          </form>
+        </div>
+      </main>
+    </div>
+
+    <!-- Main Logic -->
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

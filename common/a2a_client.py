@@ -44,42 +44,61 @@ async def delegate(
     Returns:
         The agent's text response, or an empty string if none could be extracted.
     """
-    async with httpx.AsyncClient(timeout=300.0) as http_client:
-        # Fetch agent card
-        card_url = f"{endpoint}/.well-known/agent.json"
-        card_resp = await http_client.get(card_url)
-        card_resp.raise_for_status()
-        agent_card = AgentCard.model_validate(card_resp.json())
+    import os
+    import asyncio
+    A2A_API_KEY = os.getenv("A2A_API_KEY", "super-secret-key")
+    headers = {"Authorization": f"Bearer {A2A_API_KEY}"}
+    
+    max_retries = 3
+    base_delay = 1.0
+    
+    for attempt in range(max_retries):
+        try:
+            async with httpx.AsyncClient(timeout=300.0, headers=headers) as http_client:
+                # Fetch agent card
+                card_url = f"{endpoint}/.well-known/agent.json"
+                card_resp = await http_client.get(card_url)
+                card_resp.raise_for_status()
+                agent_card = AgentCard.model_validate(card_resp.json())
 
-        # Build deprecated (legacy) A2AClient — straightforward for send_message
-        client = A2AClient(httpx_client=http_client, agent_card=agent_card)
+                # Build deprecated (legacy) A2AClient — straightforward for send_message
+                client = A2AClient(httpx_client=http_client, agent_card=agent_card)
 
-        # Build message with trace metadata
-        message = Message(
-            role=Role.user,
-            parts=[Part(root=TextPart(text=question))],
-            message_id=str(uuid4()),
-            context_id=context_id,
-            metadata={
-                "trace_id": trace_id,
-                "context_id": context_id,
-                "delegation_depth": depth,
-            },
-        )
+                # Build message with trace metadata
+                message = Message(
+                    role=Role.user,
+                    parts=[Part(root=TextPart(text=question))],
+                    message_id=str(uuid4()),
+                    context_id=context_id,
+                    metadata={
+                        "trace_id": trace_id,
+                        "context_id": context_id,
+                        "delegation_depth": depth,
+                    },
+                )
 
-        request = SendMessageRequest(
-            id=str(uuid4()),
-            params=MessageSendParams(message=message),
-        )
+                request = SendMessageRequest(
+                    id=str(uuid4()),
+                    params=MessageSendParams(message=message),
+                )
 
-        logger.debug(
-            "Delegating to %s (depth=%d, trace=%s)", endpoint, depth, trace_id
-        )
+                logger.debug(
+                    "Delegating to %s (depth=%d, trace=%s) - attempt %d", endpoint, depth, trace_id, attempt + 1
+                )
 
-        response = await client.send_message(request)
+                response = await client.send_message(request)
 
-        # Extract text from SendMessageResponse
-        return _extract_text(response)
+                # Extract text from SendMessageResponse
+                return _extract_text(response)
+                
+        except (httpx.RequestError, httpx.HTTPStatusError) as e:
+            if attempt == max_retries - 1:
+                logger.error(f"Failed to delegate to {endpoint} after {max_retries} attempts. Error: {e}")
+                raise e
+                
+            delay = base_delay * (2 ** attempt)
+            logger.warning(f"Connection to {endpoint} failed: {e}. Retrying in {delay} seconds...")
+            await asyncio.sleep(delay)
 
 
 def _extract_text(response: object) -> str:

@@ -1,219 +1,76 @@
-# Legal Multi-Agent System with A2A Protocol
+# Bài Tập Thực Hành Đa Tác Vụ (Multi-Agent) với MCP-A2A
 
-A distributed legal advisory system where specialised AI agents collaborate using Google's [Agent-to-Agent (A2A) protocol](https://github.com/google/A2A). Built with **LangGraph**, **LangChain**, and the **a2a-sdk**, the project serves as both a working demo and a hands-on learning path — progressing from a simple LLM API call (Stage 1) to a fully distributed multi-agent network (Stage 5).
+**Thông tin học viên:**
+- **Họ và tên:** Đặng Trần Đạt
+- **Mã học viên:** 2A202600662
+- **Khóa học/Bài tập:** Day9_Multi-Agent_MCP-A2A
 
-## Architecture
+## Tổng Quan Dự Án
+Đây là kho lưu trữ bài nộp cho Codelab Day 9, thuộc chuyên đề xây dựng hệ thống Trí tuệ nhân tạo Đa tác vụ (Multi-Agent Legal Advisory) thông qua giao thức A2A (Agent-to-Agent) của Google kết hợp cùng LangGraph & LangChain.
 
-```
-                     ┌─────────────────────┐
-                     │  Registry Service   │  :10000
-                     │  /register          │
-                     │  /discover/{task}   │
-                     └─────────┬───────────┘
-                               │  (agents self-register on startup)
-          ┌────────────────────┼─────────────────────┐
-          │                    │                     │
-   Tax Agent :10102   Law Agent :10101    Compliance Agent :10103
-          │                    │                     │
-          └─────────► delegates in parallel ◄────────┘
-                               │
-                        Customer Agent :10100
-                               │
-                             User
-```
+### Các Yêu Cầu Đã Hoàn Thành (Core Requirements)
+- **Lý thuyết:** Đã trả lời toàn bộ các câu hỏi lý thuyết của Codelab (Phần 1, 2, 5, 6) trong file `answers.md`.
+- **Thực hành Kiến trúc Phân tán (A2A):** Đã triển khai, chỉnh sửa logic và test thành công mô hình Multi-Agent độc lập (Customer, Law, Tax, Compliance, Privacy). Cập nhật `start_all.sh` và `start_all.ps1` để gọi đầy đủ các sub-agents.
+- **Hoàn thiện các bài tập nhỏ (Exercises):** Đã xử lý toàn bộ các mục `TODO` trong thư mục `exercises/` (gồm `exercise_2_tools.py` và `exercise_4_multiagent.py`) đảm bảo Graph routing và Tool mapping chính xác tuyệt đối.
+- **Giao diện Web UI:** Xây dựng một giao diện Frontend nâng cao chuẩn **Premium Glassmorphism** (Giao diện Kính mờ hiện đại) có khả năng trực quan hóa cấu trúc đồ thị (Topology) của LangGraph và lưu trạng thái phiên chat.
 
-**Customer Agent** receives a user question and delegates to the **Law Agent**, which analyses the legal aspects, then dispatches to **Tax Agent** and **Compliance Agent** in parallel via LangGraph's `Send` API. Results are aggregated into a comprehensive legal analysis.
-
-All agent discovery is dynamic — agents register their capabilities with the **Registry** on startup and discover each other at runtime. No hardcoded URLs.
-
-### Agent Details
-
-| Agent | Port | LangGraph Pattern | Role |
-|---|---|---|---|
-| Customer Agent | 10100 | `create_react_agent` | Entry point — routes user questions to Law Agent |
-| Law Agent | 10101 | Custom `StateGraph` | Orchestrator — analyses law, delegates in parallel |
-| Tax Agent | 10102 | `create_react_agent` | Specialist — tax law, IRS, penalties, FBAR/FATCA |
-| Compliance Agent | 10103 | `create_react_agent` | Specialist — SEC, SOX, FCPA, GDPR, AML |
-| Registry | 10000 | FastAPI (not an agent) | Service discovery and agent registration |
-
-### Request Flow
-
-```
-User question
-  → Customer Agent: LLM detects legal domain, calls delegate tool
-    → Registry: discover("legal_question") → Law Agent endpoint
-    → Law Agent:
-        [analyze_law]      LLM contract/tort analysis
-        [check_routing]    LLM decides: needs_tax? needs_compliance?
-        [call_tax]         ──→ Registry discover → Tax Agent (A2A)     ┐
-        [call_compliance]  ──→ Registry discover → Compliance (A2A)    ├ parallel
-        [aggregate]        Combines all analyses into final response   ┘
-  → Customer Agent returns response to user
-```
-
-### Key Design Patterns
-
-- **Dynamic discovery** — agents find each other through the Registry, not hardcoded URLs
-- **Parallel delegation** — LangGraph `Send` API dispatches tax and compliance branches concurrently
-- **Trace propagation** — `trace_id` and `context_id` flow through every A2A hop for debugging
-- **Depth guards** — `MAX_DELEGATION_DEPTH = 3` prevents infinite delegation loops
-- **Annotated reducers** — `Annotated[str, _last_wins]` handles parallel writes to shared state fields
-
-## Tech Stack
-
-| Layer | Choice |
-|---|---|
-| Agent framework | [LangGraph](https://langchain-ai.github.io/langgraph/) |
-| LLM provider | Any model via [OpenRouter](https://openrouter.ai) (OpenAI-compatible API) |
-| A2A transport | [a2a-sdk](https://pypi.org/project/a2a-sdk/) |
-| Registry | FastAPI + in-memory store |
-| Package manager | [uv](https://docs.astral.sh/uv/) |
-
-## 📚 Codelab for Students
-
-**Thời gian:** 2 giờ | **Ngôn ngữ:** Tiếng Việt
-
-Codelab hướng dẫn từng bước xây dựng multi-agent system, từ cơ bản đến nâng cao:
-
-- **[CODELAB.md](CODELAB.md)** - Hướng dẫn chi tiết cho sinh viên
-- **[INSTRUCTOR_GUIDE.md](INSTRUCTOR_GUIDE.md)** - Hướng dẫn cho giảng viên
-- **[QUICK_REFERENCE.md](QUICK_REFERENCE.md)** - Tài liệu tham khảo nhanh
-- **[exercises/](exercises/)** - Bài tập thực hành với skeleton code
-- **[exercises/SOLUTIONS.md](exercises/SOLUTIONS.md)** - Đáp án chi tiết
-
-### Lộ Trình Học
-
-```
-Stage 1: Direct LLM (20 phút)
-    ↓
-Stage 2: RAG + Tools (30 phút)
-    ↓
-Stage 3: ReAct Agent (25 phút)
-    ↓
-Stage 4: Multi-Agent (30 phút)
-    ↓
-Stage 5: Distributed A2A (30 phút)
-    ↓
-Tổng kết & Q&A (15 phút)
-```
-
-**Bắt đầu:** Đọc [CODELAB.md](CODELAB.md)
+### Bài Tập Cộng Điểm & Nâng Cao (Extra Challenges)
+1. **Phân tích Latency (Bài tập cộng điểm):** Tính toán thời gian phản hồi thực tế (19.76s) và đề xuất 3 giải pháp tối ưu hệ thống mang tính thực tiễn cao (Pass-through bypass, Streaming SSE, Mini-Model Router).
+2. **Challenge 1 (Memory):** Nâng cấp trạng thái (`LegalState`) và sử dụng checkpointer `MemorySaver` để hệ thống lưu giữ Context hội thoại, quản lý lịch sử thông minh theo từng `thread_id`.
+3. **Challenge 2 (Authentication):** Triển khai API Key Authentication (Middleware) kiểm duyệt mọi luồng giao tiếp giữa các Agents, ngăn chặn truy cập A2A trái phép từ bên ngoài.
+4. **Challenge 3 (Retry Logic):** Bổ sung thuật toán Exponential Backoff Retry trực tiếp vào tầng HTTP Client (`a2a_client.py`), giúp hệ thống tự động giãn cách thời gian gọi lại khi một Sub-Agent bị sập, tăng tính Fault-Tolerance chuẩn Production.
 
 ---
 
-## Getting Started
+## Hướng Dẫn Chạy Cục Bộ (Getting Started)
 
-### Prerequisites
-
-- Python 3.11+
-- [uv](https://docs.astral.sh/uv/) package manager
-- An [OpenRouter](https://openrouter.ai) API key
-
-### Setup
-
+### 1. Cấu hình môi trường
 ```bash
-# Clone and install
-git clone <repo-url>
-cd legal_multiagent
+# Cài đặt các thư viện cần thiết bằng uv
 uv sync
 
-# Configure environment
+# Copy file .env.example sang .env
 cp .env.example .env
-# Edit .env with your OpenRouter API key
+
+# Sửa file .env, điền OPENROUTER_API_KEY (Và các biến A2A_API_KEY nếu có)
 ```
 
-### Run the Full System (Stage 5)
+### 2. Khởi động Backend (Các Agents)
+Bạn có thể chọn 1 trong 2 cấu trúc để chạy tùy thuộc vào mục đích test:
 
+- **Option 1 (Stage 4 - In-Process / Cắm Web UI):** Chạy toàn bộ luồng agents trong 1 process chung và phục vụ qua một cổng duy nhất cho Frontend.
+  ```bash
+  uv run uvicorn api:app --port 8000
+  ```
+- **Option 2 (Stage 5 - Distributed A2A):** Chạy 5 Agents trên 5 Port độc lập, giao tiếp với nhau qua HTTP và tra cứu bằng Registry (Phục vụ Terminal Client).
+  ```bash
+  ./start_all.sh
+  # Hoặc trên Windows:
+  ./start_all.ps1
+
+  # Sau khi khởi động xong 6 Terminal, chạy kịch bản ở terminal chính:
+  uv run python test_client.py
+  
+  # (Tùy chọn) Chạy kịch bản lấy điểm cộng Latency Optimization (Bypass Customer Agent):
+  uv run python test_client_optimized.py
+  ```
+
+### 3. Khởi động Frontend (Web UI)
+Nếu đang dùng Option 1 (Stage 4), bạn có thể bật Server tĩnh của Frontend để chiêm ngưỡng giao diện cao cấp:
 ```bash
-# Start all 5 services (registry + 4 agents)
-./start_all.sh
-
-# In another terminal, send a test question
-uv run python test_client.py
+npm run dev
 ```
+Sau đó truy cập link (ví dụ: http://localhost:5173 hoặc 3000) trên trình duyệt để trải nghiệm tính năng trò chuyện có bộ nhớ (Memory) và hiển thị Sơ đồ Graph thời gian thực.
 
-### Run Individual Stage Demos
+---
 
-No servers needed — each demo runs as a standalone script:
-
-```bash
-uv run python stages/stage_1_direct_llm/main.py
-uv run python stages/stage_2_rag_tools/main.py
-uv run python stages/stage_3_single_agent/main.py
-uv run python stages/stage_4_multi_agent/main.py
-```
-
-## LLM Evolution Stages
-
-The `stages/` folder contains progressive demos that build from simple to complex, matching the roadmap in `docs/10_llm_roadmap.svg`:
-
-| Stage | Name | What It Demonstrates |
-|---|---|---|
-| **1** | Direct LLM Calling | Stateless prompt → response. No tools, no memory. |
-| **2** | LLM + RAG / Tools | Tool calling with a keyword-match knowledge base and damage calculator. Manual single-pass orchestration. |
-| **3** | Single Agent (ReAct) | Autonomous Think → Act → Observe loop via `create_react_agent`. Agent decides which tools to call and when. |
-| **4** | Multi-Agent (In-Process) | Multiple specialised agents with parallel execution via `StateGraph` + `Send` API. Same topology as Stage 5 but in a single process. |
-| **5** | Distributed A2A (This Project) | Full distributed system — each agent is an independent HTTP service communicating via A2A protocol with dynamic discovery. |
-
-Each stage's folder includes an `architecture.svg` diagram and a self-contained `main.py`.
-
-## Project Structure
-
-```
-legal_multiagent/
-├── start_all.sh               # Launches all services in correct order
-├── test_client.py             # E2E test client
-├── pyproject.toml             # Dependencies (uv-managed)
-├── .env.example               # Required environment variables
-│
-├── common/                    # Shared utilities
-│   ├── llm.py                 # get_llm() → ChatOpenAI via OpenRouter
-│   ├── a2a_client.py          # delegate() — A2A message sending
-│   └── registry_client.py     # discover() / register() — Registry API
-│
-├── registry/                  # Service discovery (port 10000)
-├── customer_agent/            # Entry point agent (port 10100)
-├── law_agent/                 # Legal orchestrator (port 10101)
-├── tax_agent/                 # Tax specialist (port 10102)
-├── compliance_agent/          # Compliance specialist (port 10103)
-│
-├── stages/                    # Progressive learning demos (1-4)
-│   ├── stage_1_direct_llm/
-│   ├── stage_2_rag_tools/
-│   ├── stage_3_single_agent/
-│   └── stage_4_multi_agent/
-│
-└── docs/                      # Architecture diagrams (SVG)
-```
-
-Each agent module follows the same structure:
-- **`graph.py`** — LangGraph graph definition (all agent logic)
-- **`agent_executor.py`** — Bridge between A2A SDK and LangGraph
-- **`__main__.py`** — Server bootstrap, agent card, registration
-
-## Configuration
-
-| Environment Variable | Description | Default |
-|---|---|---|
-| `OPENROUTER_API_KEY` | Your OpenRouter API key | (required) |
-| `OPENROUTER_MODEL` | Model identifier | `anthropic/claude-sonnet-4-5` |
-| `REGISTRY_URL` | Registry service URL | `http://localhost:10000` |
-
-The model is swappable to any OpenRouter-supported model (e.g., `openai/gpt-4o`, `google/gemini-2.0-flash`).
-
-## Documentation Diagrams
-
-The `docs/` folder contains SVG architecture diagrams:
-
-| Diagram | Topic |
-|---|---|
-| `01_why_multiagent` | Why multi-agent over monolithic LLMs |
-| `02_a2a_vs_traditional` | A2A protocol vs traditional multi-agent |
-| `03_a2a_protocol` | A2A protocol technical details |
-| `04_system_architecture` | Full system architecture |
-| `05_law_agent_graph` | Law Agent StateGraph deep dive |
-| `06_request_flow` | End-to-end request flow with trace propagation |
-| `07_a2a_intro` | Introduction to A2A protocol |
-| `08_a2a_core_concepts` | A2A core concepts (Agent Cards, Tasks, Parts) |
-| `09_a2a_interaction_flow` | A2A interaction flow patterns |
-| `10_llm_roadmap` | LLM evolution roadmap (Stages 1–5) |
+## Chi Tiết Các File Chính Đã Chỉnh Sửa
+- `answers.md`: Chứa toàn bộ **câu trả lời bài tập lý thuyết** và **báo cáo chi tiết cách giải bài tập nâng cao (Challenges)**.
+- `api.py` & `stages/stage_4_milti_agent/main.py`: Chứa logic Triển khai Challenge 1 (Memory + Threading).
+- `common/auth.py` & `*/__main__.py`: Chứa mã nguồn Middleware bảo mật Triển khai Challenge 2 (Auth).
+- `common/a2a_client.py`: Nơi cài cắm Challenge 3 (Exponential Backoff Retry Logic).
+- `index.html` / `style.css` / `main.js`: Mã nguồn của giao diện UI siêu cấp.
+- `test_client.py` & `test_client_optimized.py`: File kiểm thử toàn trình, đã tích hợp sẵn API Key (Header Authorization) và chia luồng Full-Flow / Bypass.
+- `start_all.sh` & `start_all.ps1`: Bổ sung tiến trình khởi chạy `privacy_agent` cho cả MacOS/Linux và Windows.
+- `exercises/`: Hoàn thiện toàn bộ bài tập thực hành theo yêu cầu của Codelab.
+- `README_old.md`: File README bản gốc của repository.

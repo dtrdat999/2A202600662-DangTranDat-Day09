@@ -3,3 +3,5 @@
 **cache**
 .claude
 **SOLUTION**
+node_modules/
+__pycache__/

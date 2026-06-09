@@ -172,18 +172,33 @@ def check_compliance_requirements(industry: str, company_size: str) -> str:
     )
 
 
-TOOLS = [search_legal_database, calculate_penalty, check_compliance_requirements]
+@tool
+def search_case_law(keywords: str) -> str:
+    """Tìm kiếm án lệ theo từ khóa.
+    
+    Args:
+        keywords: Từ khóa tìm kiếm
+    """
+    cases = {
+        "breach": "Hadley v. Baxendale (1854) - Consequential damages",
+        "negligence": "Donoghue v. Stevenson (1932) - Duty of care",
+        "contract": "Carlill v. Carbolic Smoke Ball Co (1893) - Unilateral contract",
+    }
+    for key, case in cases.items():
+        if key in keywords.lower():
+            return case
+    return "Không tìm thấy án lệ phù hợp"
 
-QUESTION = (
-    "A tech startup with $5M revenue was caught sharing user data without consent "
-    "and failed to pay taxes on overseas revenue. What are all the legal consequences?"
-)
+TOOLS = [search_legal_database, calculate_penalty, check_compliance_requirements, search_case_law]
+
+QUESTION = "Hình phạt cho việc vi phạm hợp đồng là gì và có án lệ nào áp dụng không?"
 
 SYSTEM_PROMPT = (
-    "You are a legal analyst agent. You have access to tools for searching legal databases, "
-    "calculating penalties, and checking compliance requirements. Use these tools to build "
-    "a comprehensive analysis. Search for each legal area separately — data privacy, tax, "
-    "and compliance. Keep your final answer under 500 words."
+    "Bạn là một trợ lý luật sư xuất sắc người Việt Nam. Bạn có quyền truy cập vào các công cụ tìm kiếm "
+    "cơ sở dữ liệu pháp lý (bằng tiếng Anh), tính toán hình phạt, kiểm tra quy định tuân thủ và tìm án lệ.\n\n"
+    "QUY TẮC QUAN TRỌNG:\n"
+    "1. Do dữ liệu pháp lý được lưu bằng Tiếng Anh, KHI GỌI TOOL BẠN PHẢI DỊCH TỪ KHÓA SANG TIẾNG ANH (VD: thay vì tìm 'vi phạm hợp đồng', hãy tìm 'breach of contract').\n"
+    "2. Sau khi có dữ liệu, BẠN PHẢI TRẢ LỜI NGƯỜI DÙNG HOÀN TOÀN BẰNG TIẾNG VIỆT, giải thích cặn kẽ và chuyên nghiệp."
 )
 
 
@@ -191,21 +206,24 @@ async def main():
     from langgraph.prebuilt import create_react_agent
 
     print("=" * 70)
-    print("STAGE 3: Single Agent (ReAct Loop)")
+    print("GIAI ĐOẠN 3: Agent Độc Lập (ReAct Loop)")
     print("=" * 70)
     print()
-    print("[How it works]")
-    print("  1. An autonomous agent receives a complex multi-part question")
-    print("  2. It reasons about what tools to call (Think)")
-    print("  3. It calls a tool (Act)")
-    print("  4. It observes the result and decides next steps (Observe)")
-    print("  5. It repeats until it has enough information for a final answer")
+    print("[Cách hoạt động]")
+    print("  1. Một Agent nhận một câu hỏi phức tạp gồm nhiều vế")
+    print("  2. Nó tự suy nghĩ xem cần gọi những công cụ nào (Think)")
+    print("  3. Nó gọi công cụ (Act)")
+    print("  4. Nó quan sát kết quả và quyết định bước tiếp theo (Observe)")
+    print("  5. Nó lặp lại quá trình này cho đến khi đủ thông tin trả lời")
     print()
-    print(f"Question: {QUESTION}")
+    print(f"Câu hỏi: {QUESTION}")
     print("-" * 70)
 
     llm = get_llm()
-    graph = create_react_agent(model=llm, tools=TOOLS, prompt=SYSTEM_PROMPT)
+    # LƯU Ý BÀI TẬP 3.2: Đề bài yêu cầu thêm `verbose=True`. Tuy nhiên, do phiên bản
+    # thư viện langgraph mới (>= 1.2.0) không còn hỗ trợ tham số `verbose` nữa,
+    # chúng ta phải dùng `debug=True` để tránh lỗi TypeError và giữ nguyên tác dụng in log.
+    graph = create_react_agent(model=llm, tools=TOOLS, prompt=SYSTEM_PROMPT, debug=True)
 
     inputs = {"messages": [{"role": "user", "content": QUESTION}]}
 
@@ -216,32 +234,32 @@ async def main():
             messages = update.get("messages", [])
             for msg in messages:
                 if hasattr(msg, "tool_calls") and msg.tool_calls:
-                    print(f"\n[Step {step}] THINK + ACT (node: {node_name})")
+                    print(f"\n[Bước {step}] SUY NGHĨ + HÀNH ĐỘNG (node: {node_name})")
                     for tc in msg.tool_calls:
                         print(f"  Tool: {tc['name']}")
-                        print(f"  Args: {tc['args']}")
+                        print(f"  Tham số: {tc['args']}")
                 elif msg.type == "tool":
-                    print(f"\n[Step {step}] OBSERVE (node: {node_name})")
+                    print(f"\n[Bước {step}] QUAN SÁT KẾT QUẢ (node: {node_name})")
                     content = msg.content
-                    print(f"  Result: {content[:300]}{'...' if len(content) > 300 else ''}")
+                    print(f"  Kết quả: {content[:300]}{'...' if len(content) > 300 else ''}")
                 elif msg.type == "ai" and msg.content:
-                    print(f"\n[Step {step}] FINAL ANSWER (node: {node_name})")
+                    print(f"\n[Bước {step}] CÂU TRẢ LỜI CUỐI CÙNG (node: {node_name})")
                     print("-" * 70)
                     print(msg.content)
 
     print()
     print("-" * 70)
-    print("[Improvements over Stage 2]")
-    print("  + Autonomous: agent decides which tools to call and when")
-    print("  + Multi-step reasoning: can search, calculate, search again")
-    print("  + Handles complex queries: breaks problems into sub-tasks")
+    print("[Tiến bộ so với Giai đoạn 2]")
+    print("  + Tự chủ: Agent tự quyết định gọi tool nào và gọi khi nào")
+    print("  + Suy luận nhiều bước: Có thể tìm kiếm, tính toán, rồi lại tìm kiếm tiếp")
+    print("  + Xử lý câu hỏi phức tạp: Tự chia nhỏ vấn đề ra thành nhiều nhiệm vụ")
     print()
-    print("[Limitations of Stage 3]")
-    print("  - Single agent: one LLM handles all domains (law, tax, compliance)")
-    print("  - No specialisation: same system prompt for all legal areas")
-    print("  - Bottleneck: sequential tool calls, no parallelism")
+    print("[Hạn chế của Giai đoạn 3]")
+    print("  - Độc diễn: Chờ một LLM duy nhất xử lý mọi lĩnh vực (luật, thuế, tuân thủ)")
+    print("  - Không có chuyên môn hóa: Dùng chung một System Prompt cho mọi vấn đề")
+    print("  - Nút thắt cổ chai: Các công cụ được gọi tuần tự, không có tính song song")
     print()
-    print("Next: Stage 4 splits this into specialised agents that work in parallel.")
+    print("Tiếp theo: Giai đoạn 4 sẽ chia nhỏ hệ thống thành các Agents chuyên biệt làm việc song song.")
     print("=" * 70)
 
 
